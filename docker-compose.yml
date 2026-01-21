@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: psql_service
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    networks:
+      - weather_network
+    volumes:
+      - psql_data:/var/lib/postgresql
+      - ./utils/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: >
+      sh -c "
+        echo \"listen_addresses = '*'\" >> /var/lib/postgresql/data/postgresql.conf &&
+        echo \"host all all 0.0.0.0/0 md5\" >> /var/lib/postgresql/data/pg_hba.conf &&
+        docker-entrypoint.sh postgres"
+
+  extract:
+    build: .
+    container_name: extract_script
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - API_KEY=${API_KEY}
+      - BASE_URL=${BASE_URL}
+      - ADD_URL=${ADD_URL}
+      - DB_HOST=postgres
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=5432
+    networks:
+      - weather_network
+    command: >
+      sh -c "
+        /scripts/wait-for-postgres.sh postgres &&
+        python /app/src/extract/extract.py"
+
+networks:
+  weather_network:
+    driver: bridge
+
+volumes:
+  psql_data:
+    driver: local
