@@ -12,7 +12,7 @@ services:
       - weather_network
     volumes:
       - psql_data:/var/lib/postgresql
-      - ./utils/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./src/utils/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -20,9 +20,10 @@ services:
       retries: 5
     command: >
       sh -c "
-        echo \"listen_addresses = '*'\" >> /var/lib/postgresql/data/postgresql.conf &&
-        echo \"host all all 0.0.0.0/0 md5\" >> /var/lib/postgresql/data/pg_hba.conf &&
-        docker-entrypoint.sh postgres"
+        echo \"listen_addresses = '*'\" >> /var/lib/postgresql/postgresql.conf &&
+        echo \"host all all 0.0.0.0/0 md5\" >> /var/lib/postgresql/pg_hba.conf &&
+        docker-entrypoint.sh postgres
+      "
 
   extract:
     build: .
@@ -32,8 +33,6 @@ services:
         condition: service_healthy
     environment:
       - API_KEY=${API_KEY}
-      - BASE_URL=${BASE_URL}
-      - ADD_URL=${ADD_URL}
       - DB_HOST=postgres
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -43,8 +42,8 @@ services:
       - weather_network
     command: >
       sh -c "
-        /scripts/wait-for-postgres.sh postgres &&
-        python /app/src/extract/extract.py"
+      ./scripts/wait-for-postgres.sh postgres postgres &&
+      python /app/src/extract/extract.py"
 
 networks:
   weather_network:
