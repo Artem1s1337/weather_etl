@@ -1,16 +1,15 @@
-#!/bin/bash
-# wait-for-postgres.sh
+#!/bin/sh
 
 set -e
 
 host="$1"
 shift
 
-echo "Wait for PostgreSQL on $host:5432..."
+echo "Waiting for PostgreSQL at $host:5432..."
 
-until PGPASSWORD=$DB_PASSWORD psql -h "$host" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; do
-  echo "PostgreSQL unavailable, wait for 1 sec..."
+while ! nc -z "$host" 5432; do
+  echo "PostgreSQL unavailable, waiting 1 second..."
   sleep 1
 done
 
-echo "PostgreSQL avaliable, launch extract..."
+echo "PostgreSQL is up! Continuing..."
