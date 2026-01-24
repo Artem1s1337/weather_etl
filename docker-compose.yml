@@ -44,11 +44,73 @@ services:
       sh -c "
       ./scripts/wait-for-postgres.sh postgres postgres &&
       python /app/src/extract/extract.py"
+  
+  namenode:
+    image: bde2020/hadoop-namenode:latest
+    container_name: namenode
+    restart: always
+    ports:
+      - 9870:9870  # web_ui
+      - 9000:9000  # hdfs
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=${CLUSTER_NAME}
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    networks:
+    #   # spark-network:
+      weather_network:
+ 
+
+  datanode1:
+    image: bde2020/hadoop-datanode:latest
+    container_name: datanode1
+    restart: always
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    networks:
+    #   # spark-network:
+      weather_network:
+
+  datanode2:
+    image: bde2020/hadoop-datanode:latest
+    container_name: datanode2
+    restart: always
+    volumes:
+      - hadoop_datanode2:/hadoop/dfs/data
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    networks:
+      # spark-network:
+      weather_network:
+
+  datanode3:
+    image: bde2020/hadoop-datanode:latest
+    container_name: datanode3
+    restart: always
+    volumes:
+      - hadoop_datanode3:/hadoop/dfs/data
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    networks:
+    #   # spark-network:
+      weather_network:
 
 networks:
   weather_network:
     driver: bridge
+  # spark-network:
+  #   driver: bridge
 
 volumes:
   psql_data:
     driver: local
+  hadoop_namenode:
+  hadoop_datanode1:
+  hadoop_datanode2:
+  hadoop_datanode3:
